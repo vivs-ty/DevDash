@@ -48,7 +48,7 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     done_fixes   = db.query(Fix).filter(Fix.status.in_(["done", "wontfix"])).count()
 
     # standup data: items created or updated in the last 24 h
-    cutoff = datetime.utcnow() - timedelta(hours=24)
+    cutoff = datetime.now() - timedelta(hours=24)
     standup_reviews = db.query(CodeReview).filter(CodeReview.created_at >= cutoff).all()
     standup_issues  = db.query(Issue).filter(Issue.created_at >= cutoff).all()
     standup_prs     = db.query(PullRequest).filter(PullRequest.created_at >= cutoff).all()

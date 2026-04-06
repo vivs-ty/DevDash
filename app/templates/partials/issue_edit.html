@@ -1,0 +1,32 @@
+{% from "macros.html" import input_field, select_field, textarea_field %}
+<div id="issue-{{ item.id }}"
+     class="bg-slate-900 border border-amber-800 rounded-xl p-4">
+  <p class="text-xs text-amber-400 font-medium mb-3">Editing issue</p>
+  <form hx-put="/issues/{{ item.id }}"
+        hx-target="#issue-{{ item.id }}"
+        hx-swap="outerHTML"
+        class="grid grid-cols-2 gap-3">
+    <div class="col-span-2">{{ input_field("Title", "title", item.title, required=true) }}</div>
+    {{ input_field("Repository", "repo", item.repo or "") }}
+    {{ input_field("Issue Number", "issue_number", item.issue_number or "", type="number") }}
+    {{ input_field("Labels", "labels", item.labels or "", placeholder="bug, enhancement, ...") }}
+    {{ select_field("Severity", "severity", severity_options, item.severity) }}
+    {{ select_field("Status", "status", status_options, item.status) }}
+    {{ select_field("Priority", "priority", priority_options, item.priority) }}
+    {{ input_field("GitHub URL", "github_url", item.github_url or "") }}
+    <div class="col-span-2">{{ textarea_field("Description", "description", item.description or "") }}</div>
+    <div class="col-span-2 flex gap-2">
+      <button type="submit"
+              class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium transition-colors">
+        Save
+      </button>
+      <button type="button"
+              hx-get="/issues/{{ item.id }}/card"
+              hx-target="#issue-{{ item.id }}"
+              hx-swap="outerHTML"
+              class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm transition-colors">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

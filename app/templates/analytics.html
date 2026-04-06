@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Analytics — DevDash{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-6xl mx-auto space-y-6">
+
+  <div>
+    <h1 class="text-xl font-bold text-white">Analytics</h1>
+    <p class="text-slate-500 text-sm mt-0.5">Your developer workflow at a glance</p>
+  </div>
+
+  <!-- Summary row -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {% macro mini_stat(label, n, color) %}
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <p class="text-xs text-slate-500 uppercase tracking-wide">{{ label }}</p>
+      <p class="text-3xl font-bold {{ color }} mt-1">{{ n }}</p>
+    </div>
+    {% endmacro %}
+    {{ mini_stat("Reviews", total_reviews, "text-indigo-400") }}
+    {{ mini_stat("Issues",  total_issues,  "text-amber-400") }}
+    {{ mini_stat("PRs",     total_prs,     "text-emerald-400") }}
+    {{ mini_stat("Fixes",   total_fixes,   "text-rose-400") }}
+  </div>
+
+  <!-- Time value -->
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-4">
+    <svg class="w-8 h-8 text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <div>
+      <p class="text-slate-400 text-sm">Total time logged on fixes</p>
+      <p class="text-2xl font-bold text-white">{{ total_time_hours }}h</p>
+    </div>
+  </div>
+
+  <!-- Charts row 1: daily activity -->
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+    <h2 class="text-sm font-semibold text-slate-300 mb-4">Activity — last 14 days (items created)</h2>
+    <canvas id="dailyChart" height="80"></canvas>
+  </div>
+
+  <!-- Charts row 2: status distributions -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <h3 class="text-xs font-semibold text-slate-400 mb-3">Reviews by Status</h3>
+      <canvas id="reviewStatusChart"></canvas>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <h3 class="text-xs font-semibold text-slate-400 mb-3">Issues by Status</h3>
+      <canvas id="issueStatusChart"></canvas>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <h3 class="text-xs font-semibold text-slate-400 mb-3">PRs by Status</h3>
+      <canvas id="prStatusChart"></canvas>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <h3 class="text-xs font-semibold text-slate-400 mb-3">Fixes by Status</h3>
+      <canvas id="fixStatusChart"></canvas>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+Chart.defaults.color = "#94a3b8";
+Chart.defaults.borderColor = "#1e293b";
+
+const INDIGO  = "#6366f1";
+const AMBER   = "#f59e0b";
+const EMERALD = "#10b981";
+const ROSE    = "#f43f5e";
+const SLATE   = "#475569";
+const COLORS  = [INDIGO, AMBER, EMERALD, ROSE, SLATE, "#8b5cf6", "#06b6d4"];
+
+// daily line chart
+new Chart(document.getElementById("dailyChart"), {
+  type: "line",
+  data: {
+    labels: {{ day_labels | tojson }},
+    datasets: [
+      { label: "Reviews",  data: {{ review_daily | tojson }}, borderColor: INDIGO,  backgroundColor: INDIGO  + "22", tension: 0.3, fill: true },
+      { label: "Issues",   data: {{ issue_daily  | tojson }}, borderColor: AMBER,   backgroundColor: AMBER   + "22", tension: 0.3, fill: true },
+      { label: "PRs",      data: {{ pr_daily     | tojson }}, borderColor: EMERALD, backgroundColor: EMERALD + "22", tension: 0.3, fill: true },
+      { label: "Fixes",    data: {{ fix_daily    | tojson }}, borderColor: ROSE,    backgroundColor: ROSE    + "22", tension: 0.3, fill: true },
+    ]
+  },
+  options: { plugins: { legend: { labels: { boxWidth: 12 } } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+function doughnut(id, data, colors) {
+  const labels  = Object.keys(data);
+  const values  = Object.values(data);
+  if (!labels.length) return;
+  new Chart(document.getElementById(id), {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors || COLORS, borderWidth: 2, borderColor: "#0f172a" }]
+    },
+    options: {
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } },
+      cutout: "60%"
+    }
+  });
+}
+
+doughnut("reviewStatusChart", {{ review_status | tojson }}, [SLATE, INDIGO, EMERALD, AMBER, "#10b981"]);
+doughnut("issueStatusChart",  {{ issue_status  | tojson }}, [AMBER, INDIGO, EMERALD, SLATE, ROSE]);
+doughnut("prStatusChart",     {{ pr_status     | tojson }}, [EMERALD, SLATE, INDIGO, "#10b981", "#8b5cf6", SLATE]);
+doughnut("fixStatusChart",    {{ fix_status    | tojson }}, [SLATE, INDIGO, AMBER, EMERALD, SLATE]);
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% macro priority_badge(priority) %}
+{% set c = {"critical": "bg-red-950 text-red-400 border-red-900",
+             "high":     "bg-orange-950 text-orange-400 border-orange-900",
+             "medium":   "bg-yellow-950 text-yellow-400 border-yellow-900",
+             "low":      "bg-slate-800 text-slate-500 border-slate-700"} %}
+<span class="inline-block text-xs px-1.5 py-0.5 rounded border font-medium
+             {{ c.get(priority, c['medium']) }}">{{ priority }}</span>
+{% endmacro %}
+
+{% macro review_status_badge(status) %}
+{% set c = {"pending":           "bg-slate-800 text-slate-400 border-slate-700",
+             "in_review":        "bg-blue-950 text-blue-400 border-blue-900",
+             "approved":         "bg-emerald-950 text-emerald-400 border-emerald-900",
+             "changes_requested":"bg-orange-950 text-orange-400 border-orange-900",
+             "done":             "bg-emerald-900 text-emerald-300 border-emerald-800"} %}
+<span class="inline-block text-xs px-1.5 py-0.5 rounded border font-medium
+             {{ c.get(status, c['pending']) }}">{{ status | replace("_", " ") }}</span>
+{% endmacro %}
+
+{% macro issue_status_badge(status) %}
+{% set c = {"open":       "bg-amber-950 text-amber-400 border-amber-900",
+             "in_progress":"bg-blue-950 text-blue-400 border-blue-900",
+             "resolved":   "bg-emerald-950 text-emerald-400 border-emerald-900",
+             "closed":     "bg-slate-800 text-slate-500 border-slate-700",
+             "blocked":    "bg-red-950 text-red-400 border-red-900"} %}
+<span class="inline-block text-xs px-1.5 py-0.5 rounded border font-medium
+             {{ c.get(status, c['open']) }}">{{ status | replace("_", " ") }}</span>
+{% endmacro %}
+
+{% macro pr_status_badge(status) %}
+{% set c = {"open":     "bg-emerald-950 text-emerald-400 border-emerald-900",
+             "draft":   "bg-slate-800 text-slate-500 border-slate-700",
+             "in_review":"bg-blue-950 text-blue-400 border-blue-900",
+             "approved":"bg-emerald-900 text-emerald-300 border-emerald-800",
+             "merged":  "bg-purple-950 text-purple-400 border-purple-900",
+             "closed":  "bg-slate-800 text-slate-500 border-slate-700"} %}
+<span class="inline-block text-xs px-1.5 py-0.5 rounded border font-medium
+             {{ c.get(status, c['open']) }}">{{ status | replace("_", " ") }}</span>
+{% endmacro %}
+
+{% macro fix_status_badge(status) %}
+{% set c = {"pending":    "bg-slate-800 text-slate-400 border-slate-700",
+             "in_progress":"bg-blue-950 text-blue-400 border-blue-900",
+             "testing":   "bg-amber-950 text-amber-400 border-amber-900",
+             "done":      "bg-emerald-950 text-emerald-400 border-emerald-900",
+             "wontfix":   "bg-slate-800 text-slate-500 border-slate-700"} %}
+<span class="inline-block text-xs px-1.5 py-0.5 rounded border font-medium
+             {{ c.get(status, c['pending']) }}">{{ status | replace("_", " ") }}</span>
+{% endmacro %}
+
+{% macro dots(n, total=5) %}
+{% for i in range(total) %}
+<span class="{% if i < n %}text-indigo-400{% else %}text-slate-700{% endif %}">●</span>
+{% endfor %}
+{% endmacro %}
+
+{% macro input_field(label, name, value="", placeholder="", type="text", required=false) %}
+<div>
+  <label class="block text-xs text-slate-400 mb-1">{{ label }}{% if required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}</label>
+  <input type="{{ type }}" name="{{ name }}" value="{{ value }}"
+         placeholder="{{ placeholder }}"
+         {% if required %}required{% endif %}
+         class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200
+                placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"/>
+</div>
+{% endmacro %}
+
+{% macro select_field(label, name, options, current="") %}
+<div>
+  <label class="block text-xs text-slate-400 mb-1">{{ label }}</label>
+  <select name="{{ name }}"
+          class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200
+                 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+    {% for opt in options %}
+    <option value="{{ opt }}" {% if opt == current %}selected{% endif %}>{{ opt | replace("_", " ") | capitalize }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% endmacro %}
+
+{% macro textarea_field(label, name, value="", placeholder="", rows=2) %}
+<div>
+  <label class="block text-xs text-slate-400 mb-1">{{ label }}</label>
+  <textarea name="{{ name }}" placeholder="{{ placeholder }}" rows="{{ rows }}"
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200
+                   placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors">{{ value }}</textarea>
+</div>
+{% endmacro %}

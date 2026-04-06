@@ -1,0 +1,16 @@
+/* DevDash – minimal custom overrides (Tailwind handles most styling) */
+
+/* Smooth transitions globally */
+* { transition-property: color, background-color, border-color, opacity;
+    transition-duration: 150ms; }
+
+/* line-clamp polyfill for older Tailwind builds */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* HTMX swap animation — fade-out before swap */
+.htmx-swapping { opacity: 0; transition: opacity 200ms ease-out !important; }

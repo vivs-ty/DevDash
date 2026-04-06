@@ -1,0 +1,36 @@
+{% from "macros.html" import input_field, select_field, textarea_field %}
+<div id="review-{{ item.id }}"
+     class="bg-slate-900 border border-indigo-800 rounded-xl p-4">
+  <p class="text-xs text-indigo-400 font-medium mb-3">Editing review</p>
+  <form hx-put="/reviews/{{ item.id }}"
+        hx-target="#review-{{ item.id }}"
+        hx-swap="outerHTML"
+        class="grid grid-cols-2 gap-3">
+    <div class="col-span-2">{{ input_field("Title", "title", item.title, required=true) }}</div>
+    {{ input_field("Repository", "repo", item.repo or "") }}
+    {{ input_field("PR Number", "pr_number", item.pr_number or "", type="number") }}
+    {{ input_field("Author", "author", item.author or "") }}
+    <div>
+      <label class="block text-xs text-slate-400 mb-1">Complexity (1–5)</label>
+      <input type="range" name="complexity" min="1" max="5" value="{{ item.complexity or 3 }}"
+             class="w-full accent-indigo-500"/>
+    </div>
+    {{ select_field("Status", "status", status_options, item.status) }}
+    {{ select_field("Priority", "priority", priority_options, item.priority) }}
+    {{ input_field("GitHub URL", "github_url", item.github_url or "") }}
+    <div class="col-span-2">{{ textarea_field("Notes", "notes", item.notes or "") }}</div>
+    <div class="col-span-2 flex gap-2">
+      <button type="submit"
+              class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors">
+        Save
+      </button>
+      <button type="button"
+              hx-get="/reviews/{{ item.id }}/card"
+              hx-target="#review-{{ item.id }}"
+              hx-swap="outerHTML"
+              class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm transition-colors">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

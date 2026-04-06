@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "macros.html" import priority_badge, pr_status_badge %}
+{% block title %}Pull Requests — DevDash{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-5xl mx-auto space-y-5">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-white">Pull Requests</h1>
+      <p class="text-slate-500 text-sm mt-0.5">Track your open and in-review PRs</p>
+    </div>
+    <button onclick="toggleForm('add-pr-form')"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add PR
+    </button>
+  </div>
+
+  <form method="GET" action="/pull-requests" class="flex flex-wrap gap-3">
+    <select name="status" onchange="this.form.submit()"
+            class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500">
+      <option value="">All statuses</option>
+      {% for s in status_options %}
+      <option value="{{ s }}" {% if s == filter_status %}selected{% endif %}>{{ s | replace("_", " ") | capitalize }}</option>
+      {% endfor %}
+    </select>
+    <select name="priority" onchange="this.form.submit()"
+            class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500">
+      <option value="">All priorities</option>
+      {% for p in priority_options %}
+      <option value="{{ p }}" {% if p == filter_priority %}selected{% endif %}>{{ p | capitalize }}</option>
+      {% endfor %}
+    </select>
+    {% if filter_status or filter_priority %}
+    <a href="/pull-requests" class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white text-sm transition-colors">Clear</a>
+    {% endif %}
+  </form>
+
+  <div id="add-pr-form" class="hidden bg-slate-900 border border-slate-700 rounded-xl p-5">
+    {% from "macros.html" import input_field, select_field, textarea_field %}
+    <h3 class="text-sm font-semibold text-slate-300 mb-4">New Pull Request</h3>
+    <form hx-post="/pull-requests"
+          hx-target="#prs-list"
+          hx-swap="afterbegin"
+          hx-on::after-request="this.reset(); toggleForm('add-pr-form')"
+          class="grid grid-cols-2 gap-3">
+      <div class="col-span-2">{{ input_field("Title", "title", placeholder="e.g. feat: add dark mode toggle", required=true) }}</div>
+      {{ input_field("Repository", "repo", placeholder="owner/repo") }}
+      {{ input_field("PR Number", "pr_number", placeholder="#789", type="number") }}
+      {{ input_field("Branch", "branch", placeholder="feature/my-branch") }}
+      {{ select_field("Status", "status", status_options, "open") }}
+      {{ select_field("Priority", "priority", priority_options, "medium") }}
+      {{ input_field("GitHub URL", "github_url", placeholder="https://github.com/...") }}
+      <div class="col-span-2">{{ textarea_field("Description", "description", placeholder="Describe this PR...") }}</div>
+      <div class="col-span-2 flex gap-2">
+        <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">Add PR</button>
+        <button type="button" onclick="toggleForm('add-pr-form')" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm transition-colors">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="prs-list" class="space-y-3">
+    {% for item in items %}
+      {% include "partials/pr_card.html" %}
+    {% else %}
+    <div class="text-center py-16 text-slate-600">
+      <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+      </svg>
+      <p class="text-sm">No pull requests yet. Click <strong>Add PR</strong> to get started.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>function toggleForm(id){document.getElementById(id).classList.toggle("hidden")}</script>{% endblock %}

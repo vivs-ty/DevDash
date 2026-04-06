@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Form
+from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from ..templates_config import templates
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
@@ -52,6 +52,10 @@ def create_fix(
     priority: str = Form("medium"),
     db: Session = Depends(get_db),
 ):
+    if status not in STATUS_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid status: {status!r}")
+    if priority not in PRIORITY_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid priority: {priority!r}")
     item = Fix(
         title=title, repo=repo, issue_ref=issue_ref, description=description,
         difficulty=difficulty, time_spent_minutes=time_spent_minutes,
@@ -71,6 +75,8 @@ def create_fix(
 @router.get("/{item_id}/card", response_class=HTMLResponse)
 def fix_card(item_id: int, request: Request, db: Session = Depends(get_db)):
     item = db.query(Fix).filter(Fix.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Not found")
     return templates.TemplateResponse("partials/fix_card.html", {
         "request": request,
         "item": item,
@@ -82,6 +88,8 @@ def fix_card(item_id: int, request: Request, db: Session = Depends(get_db)):
 @router.get("/{item_id}/edit", response_class=HTMLResponse)
 def edit_fix_form(item_id: int, request: Request, db: Session = Depends(get_db)):
     item = db.query(Fix).filter(Fix.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Not found")
     return templates.TemplateResponse("partials/fix_edit.html", {
         "request": request,
         "item": item,
@@ -107,6 +115,10 @@ def update_fix(
     item = db.query(Fix).filter(Fix.id == item_id).first()
     if not item:
         return HTMLResponse(status_code=404, content="Not found")
+    if status not in STATUS_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid status: {status!r}")
+    if priority not in PRIORITY_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid priority: {priority!r}")
     item.title = title
     item.repo = repo
     item.issue_ref = issue_ref

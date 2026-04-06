@@ -2,6 +2,7 @@ import os
 from fastapi import APIRouter, Depends, Request, Form
 from ..templates_config import templates
 from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
@@ -37,11 +38,10 @@ def sync_page(request: Request, db: Session = Depends(get_db)):
 @router.post("/github", response_class=HTMLResponse)
 async def do_github_sync(
     request: Request,
-    token: str = Form(""),
     username: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    gh_token    = token or os.getenv("GITHUB_TOKEN", "")
+    gh_token    = os.getenv("GITHUB_TOKEN", "")
     gh_username = username or os.getenv("GITHUB_USERNAME", "")
 
     if not gh_token:
@@ -59,7 +59,7 @@ async def do_github_sync(
     try:
         # Review requests → CodeReview
         review_items = await fetch_review_requests(gh_token)
-        existing_review_urls = {r.github_url for r in db.query(CodeReview).all()}
+        existing_review_urls = set(db.scalars(select(CodeReview.github_url)).all())
         for item in review_items:
             if item.get("html_url") not in existing_review_urls:
                 repo = repo_name_from_url(item.get("html_url", ""))
@@ -76,7 +76,7 @@ async def do_github_sync(
 
         # Assigned issues → Issue
         issue_items = await fetch_assigned_issues(gh_token, gh_username)
-        existing_issue_urls = {i.github_url for i in db.query(Issue).all()}
+        existing_issue_urls = set(db.scalars(select(Issue.github_url)).all())
         for item in issue_items:
             if item.get("html_url") not in existing_issue_urls and "pull_request" not in item:
                 repo = repo_name_from_url(item.get("html_url", ""))
@@ -94,7 +94,7 @@ async def do_github_sync(
 
         # Authored open PRs → PullRequest
         pr_items = await fetch_authored_prs(gh_token, gh_username)
-        existing_pr_urls = {p.github_url for p in db.query(PullRequest).all()}
+        existing_pr_urls = set(db.scalars(select(PullRequest.github_url)).all())
         for item in pr_items:
             if item.get("html_url") not in existing_pr_urls:
                 repo = repo_name_from_url(item.get("html_url", ""))

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Form
+from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from ..templates_config import templates
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
@@ -55,6 +55,12 @@ def create_issue(
     github_url: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    if status not in STATUS_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid status: {status!r}")
+    if priority not in PRIORITY_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid priority: {priority!r}")
+    if severity not in SEVERITY_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid severity: {severity!r}")
     item = Issue(
         title=title, repo=repo, issue_number=issue_number, labels=labels,
         severity=severity, status=status, priority=priority,
@@ -75,6 +81,8 @@ def create_issue(
 @router.get("/{item_id}/card", response_class=HTMLResponse)
 def issue_card(item_id: int, request: Request, db: Session = Depends(get_db)):
     item = db.query(Issue).filter(Issue.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Not found")
     return templates.TemplateResponse("partials/issue_card.html", {
         "request": request,
         "item": item,
@@ -87,6 +95,8 @@ def issue_card(item_id: int, request: Request, db: Session = Depends(get_db)):
 @router.get("/{item_id}/edit", response_class=HTMLResponse)
 def edit_issue_form(item_id: int, request: Request, db: Session = Depends(get_db)):
     item = db.query(Issue).filter(Issue.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Not found")
     return templates.TemplateResponse("partials/issue_edit.html", {
         "request": request,
         "item": item,
@@ -114,6 +124,12 @@ def update_issue(
     item = db.query(Issue).filter(Issue.id == item_id).first()
     if not item:
         return HTMLResponse(status_code=404, content="Not found")
+    if status not in STATUS_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid status: {status!r}")
+    if priority not in PRIORITY_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid priority: {priority!r}")
+    if severity not in SEVERITY_OPTIONS:
+        return HTMLResponse(status_code=422, content=f"Invalid severity: {severity!r}")
     item.title = title
     item.repo = repo
     item.issue_number = issue_number

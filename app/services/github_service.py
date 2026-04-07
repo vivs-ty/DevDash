@@ -11,34 +11,61 @@ def _auth_headers(token: str) -> dict:
     return {**HEADERS_BASE, "Authorization": f"Bearer {token}"}
 
 
+async def _paginate_list(client: httpx.AsyncClient, url: str, headers: dict, params: dict) -> list[dict]:
+    """Collect all pages from a GitHub list endpoint."""
+    results: list[dict] = []
+    page = 1
+    per_page = 100
+    while True:
+        r = await client.get(url, headers=headers, params={**params, "per_page": per_page, "page": page})
+        r.raise_for_status()
+        batch = r.json()
+        results.extend(batch)
+        if len(batch) < per_page:
+            break
+        page += 1
+    return results
+
+
+async def _paginate_search(client: httpx.AsyncClient, url: str, headers: dict, params: dict) -> list[dict]:
+    """Collect all pages from a GitHub search endpoint (max 1000 items)."""
+    results: list[dict] = []
+    page = 1
+    per_page = 100
+    while True:
+        r = await client.get(url, headers=headers, params={**params, "per_page": per_page, "page": page})
+        r.raise_for_status()
+        data = r.json()
+        batch = data.get("items", [])
+        results.extend(batch)
+        if len(batch) < per_page or len(results) >= data.get("total_count", 0):
+            break
+        page += 1
+    return results
+
+
 async def fetch_assigned_issues(token: str, username: str) -> list[dict]:
     """Fetch open issues assigned to the user across all repos."""
     url = f"{GITHUB_API}/issues"
-    params = {"filter": "assigned", "state": "open", "per_page": 50}
-    async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, headers=_auth_headers(token), params=params)
-        r.raise_for_status()
-    return r.json()
+    params = {"filter": "assigned", "state": "open"}
+    async with httpx.AsyncClient(timeout=20) as client:
+        return await _paginate_list(client, url, _auth_headers(token), params)
 
 
 async def fetch_review_requests(token: str) -> list[dict]:
     """Fetch pull requests where the user has been requested as a reviewer."""
     url = f"{GITHUB_API}/search/issues"
-    params = {"q": "is:open is:pr review-requested:@me", "per_page": 50}
-    async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, headers=_auth_headers(token), params=params)
-        r.raise_for_status()
-    return r.json().get("items", [])
+    params = {"q": "is:open is:pr review-requested:@me"}
+    async with httpx.AsyncClient(timeout=20) as client:
+        return await _paginate_search(client, url, _auth_headers(token), params)
 
 
 async def fetch_authored_prs(token: str, username: str) -> list[dict]:
     """Fetch open PRs authored by the user."""
     url = f"{GITHUB_API}/search/issues"
-    params = {"q": f"is:open is:pr author:{username}", "per_page": 50}
-    async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, headers=_auth_headers(token), params=params)
-        r.raise_for_status()
-    return r.json().get("items", [])
+    params = {"q": f"is:open is:pr author:{username}"}
+    async with httpx.AsyncClient(timeout=20) as client:
+        return await _paginate_search(client, url, _auth_headers(token), params)
 
 
 def repo_name_from_url(html_url: str) -> str:

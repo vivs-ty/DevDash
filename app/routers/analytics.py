@@ -13,7 +13,8 @@ router = APIRouter(tags=["analytics"])
 
 
 @router.get("/", response_class=HTMLResponse)
-def analytics(request: Request, db: Session = Depends(get_db)):
+def analytics(request: Request, days: int = 14, db: Session = Depends(get_db)):
+    days = days if days in (7, 14, 30, 90) else 14
     # Status distribution for each category
     def status_dist(model):
         rows = db.query(model.status, func.count(model.id)).group_by(model.status).all()
@@ -23,13 +24,13 @@ def analytics(request: Request, db: Session = Depends(get_db)):
         rows = db.query(model.priority, func.count(model.id)).group_by(model.priority).all()
         return {r[0]: r[1] for r in rows}
 
-    # Daily activity over last 14 days
-    days = [(date.today() - timedelta(days=i)) for i in range(13, -1, -1)]
-    day_labels = [d.strftime("%b %d") for d in days]
+    # Daily activity over selected window
+    day_list = [(date.today() - timedelta(days=i)) for i in range(days - 1, -1, -1)]
+    day_labels = [d.strftime("%b %d") for d in day_list]
 
     def daily_counts(model):
         counts = []
-        for d in days:
+        for d in day_list:
             start = datetime.combine(d, datetime.min.time())
             end   = datetime.combine(d, datetime.max.time())
             counts.append(
@@ -45,6 +46,7 @@ def analytics(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("analytics.html", {
         "request": request,
         "active": "analytics",
+        "selected_days": days,
         "review_status":   status_dist(CodeReview),
         "issue_status":    status_dist(Issue),
         "pr_status":       status_dist(PullRequest),

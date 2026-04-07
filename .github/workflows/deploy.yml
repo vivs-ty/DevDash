@@ -1,0 +1,42 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches: [master, fix/code-review-issues]
+  pull_request:
+    branches: [master]
+
+jobs:
+  # ── CI: runs on every push and on every PR ──────────────────────────────────
+  ci:
+    name: Lint & smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Import / startup check
+        run: python -c "from app.main import app; print('App loaded OK')"
+
+  # ── Deploy: only on push to master, after CI passes ─────────────────────────
+  deploy:
+    name: Deploy to Render
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          curl -f -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
+            -o /dev/null -w "HTTP status: %{http_code}\n"
+        # Add RENDER_DEPLOY_HOOK_URL to your repo's Settings → Secrets and variables → Actions
+        # Get the hook URL from: Render dashboard → your service → Settings → Deploy Hook

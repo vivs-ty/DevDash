@@ -1,0 +1,21 @@
+# Render.com deployment configuration
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: devdash
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GITHUB_TOKEN
+        sync: false          # Set this in the Render dashboard
+      - key: GITHUB_USERNAME
+        sync: false          # Set this in the Render dashboard
+      - key: DATABASE_URL
+        value: sqlite:////data/devdash.db
+    disk:
+      name: devdash-data
+      mountPath: /data
+      sizeGB: 1

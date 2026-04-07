@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from ..templates_config import templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
+from datetime import datetime
+import csv
+import io
 
 from ..database import get_db
 from ..models import CodeReview
@@ -19,6 +22,8 @@ def list_reviews(
     request: Request,
     status: Optional[str] = None,
     priority: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
     db: Session = Depends(get_db),
@@ -30,6 +35,16 @@ def list_reviews(
         query = query.filter(CodeReview.status == status)
     if priority:
         query = query.filter(CodeReview.priority == priority)
+    if date_from:
+        try:
+            query = query.filter(CodeReview.created_at >= datetime.fromisoformat(date_from))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(CodeReview.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+        except ValueError:
+            pass
     total = query.count()
     items = query.order_by(CodeReview.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
     return templates.TemplateResponse("reviews.html", {
@@ -38,6 +53,8 @@ def list_reviews(
         "active": "reviews",
         "filter_status": status or "",
         "filter_priority": priority or "",
+        "filter_date_from": date_from or "",
+        "filter_date_to": date_to or "",
         "status_options": STATUS_OPTIONS,
         "priority_options": PRIORITY_OPTIONS,
         "page": page,
@@ -45,6 +62,42 @@ def list_reviews(
         "total": total,
         **get_nav_counts(db),
     })
+
+
+@router.get("/export.csv")
+def export_reviews_csv(
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(CodeReview)
+    if status:
+        query = query.filter(CodeReview.status == status)
+    if priority:
+        query = query.filter(CodeReview.priority == priority)
+    if date_from:
+        try:
+            query = query.filter(CodeReview.created_at >= datetime.fromisoformat(date_from))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(CodeReview.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+        except ValueError:
+            pass
+    items = query.order_by(CodeReview.created_at.desc()).all()
+
+    def generate():
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(["id", "title", "repo", "pr_number", "author", "complexity", "status", "priority", "notes", "github_url", "created_at", "updated_at"])
+        for item in items:
+            writer.writerow([item.id, item.title, item.repo, item.pr_number, item.author, item.complexity, item.status, item.priority, item.notes, item.github_url, item.created_at, item.updated_at])
+        yield buf.getvalue()
+
+    return StreamingResponse(generate(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=reviews.csv"})
 
 
 @router.post("/", response_class=HTMLResponse)

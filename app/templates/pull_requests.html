@@ -9,13 +9,22 @@
       <h1 class="text-xl font-bold text-white">Pull Requests</h1>
       <p class="text-slate-500 text-sm mt-0.5">Track your open and in-review PRs</p>
     </div>
-    <button onclick="toggleForm('add-pr-form')"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-      </svg>
-      Add PR
-    </button>
+    <div class="flex items-center gap-2">
+      <a href="/pull-requests/export.csv?status={{ filter_status }}&priority={{ filter_priority }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}"
+         class="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white text-sm font-medium transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Export CSV
+      </a>
+      <button onclick="toggleForm('add-pr-form')"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Add PR
+      </button>
+    </div>
   </div>
 
   <form method="GET" action="/pull-requests" class="flex flex-wrap gap-3">
@@ -33,9 +42,16 @@
       <option value="{{ p }}" {% if p == filter_priority %}selected{% endif %}>{{ p | capitalize }}</option>
       {% endfor %}
     </select>
-    {% if filter_status or filter_priority %}
+    {% if filter_status or filter_priority or filter_date_from or filter_date_to %}
     <a href="/pull-requests" class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white text-sm transition-colors">Clear</a>
     {% endif %}
+    <input type="date" name="date_from" value="{{ filter_date_from }}"
+           onchange="this.form.submit()"
+           class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500"/>
+    <span class="text-slate-500 text-sm self-center">&rarr;</span>
+    <input type="date" name="date_to" value="{{ filter_date_to }}"
+           onchange="this.form.submit()"
+           class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500"/>
   </form>
 
   <div id="add-pr-form" class="hidden bg-slate-900 border border-slate-700 rounded-xl p-5">
@@ -80,11 +96,11 @@
     <span>{{ (page - 1) * limit + 1 }}–{{ [page * limit, total] | min }} of {{ total }}</span>
     <div class="flex gap-2">
       {% if page > 1 %}
-      <a href="?status={{ filter_status }}&priority={{ filter_priority }}&page={{ page - 1 }}&limit={{ limit }}"
+      <a href="?status={{ filter_status }}&priority={{ filter_priority }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}&page={{ page - 1 }}&limit={{ limit }}"
          class="px-3 py-1.5 rounded-lg border border-slate-700 hover:text-white transition-colors">&larr; Prev</a>
       {% endif %}
       {% if page < total_pages %}
-      <a href="?status={{ filter_status }}&priority={{ filter_priority }}&page={{ page + 1 }}&limit={{ limit }}"
+      <a href="?status={{ filter_status }}&priority={{ filter_priority }}&date_from={{ filter_date_from }}&date_to={{ filter_date_to }}&page={{ page + 1 }}&limit={{ limit }}"
          class="px-3 py-1.5 rounded-lg border border-slate-700 hover:text-white transition-colors">Next &rarr;</a>
       {% endif %}
     </div>

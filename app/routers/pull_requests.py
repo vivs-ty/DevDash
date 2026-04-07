@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from ..templates_config import templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
+from datetime import datetime
+import csv
+import io
 
 from ..database import get_db
 from ..models import PullRequest
@@ -19,6 +22,8 @@ def list_prs(
     request: Request,
     status: Optional[str] = None,
     priority: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
     db: Session = Depends(get_db),
@@ -30,6 +35,16 @@ def list_prs(
         query = query.filter(PullRequest.status == status)
     if priority:
         query = query.filter(PullRequest.priority == priority)
+    if date_from:
+        try:
+            query = query.filter(PullRequest.created_at >= datetime.fromisoformat(date_from))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(PullRequest.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+        except ValueError:
+            pass
     total = query.count()
     items = query.order_by(PullRequest.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
     return templates.TemplateResponse("pull_requests.html", {
@@ -38,6 +53,8 @@ def list_prs(
         "active": "prs",
         "filter_status": status or "",
         "filter_priority": priority or "",
+        "filter_date_from": date_from or "",
+        "filter_date_to": date_to or "",
         "status_options": STATUS_OPTIONS,
         "priority_options": PRIORITY_OPTIONS,
         "page": page,
@@ -45,6 +62,42 @@ def list_prs(
         "total": total,
         **get_nav_counts(db),
     })
+
+
+@router.get("/export.csv")
+def export_prs_csv(
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(PullRequest)
+    if status:
+        query = query.filter(PullRequest.status == status)
+    if priority:
+        query = query.filter(PullRequest.priority == priority)
+    if date_from:
+        try:
+            query = query.filter(PullRequest.created_at >= datetime.fromisoformat(date_from))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            query = query.filter(PullRequest.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+        except ValueError:
+            pass
+    items = query.order_by(PullRequest.created_at.desc()).all()
+
+    def generate():
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(["id", "title", "repo", "pr_number", "branch", "status", "priority", "description", "github_url", "created_at", "updated_at"])
+        for item in items:
+            writer.writerow([item.id, item.title, item.repo, item.pr_number, item.branch, item.status, item.priority, item.description, item.github_url, item.created_at, item.updated_at])
+        yield buf.getvalue()
+
+    return StreamingResponse(generate(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=pull_requests.csv"})
 
 
 @router.post("/", response_class=HTMLResponse)

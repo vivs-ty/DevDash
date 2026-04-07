@@ -23,10 +23,10 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     # priority items (not done) sorted critical → high → medium → low
     PRIO = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
-    reviews = db.query(CodeReview).filter(CodeReview.status.in_(REVIEW_ACTIVE)).all()
-    issues = db.query(Issue).filter(Issue.status.in_(ISSUE_ACTIVE)).all()
-    prs = db.query(PullRequest).filter(PullRequest.status.in_(PR_ACTIVE)).all()
-    fixes = db.query(Fix).filter(Fix.status.in_(FIX_ACTIVE)).all()
+    reviews = db.query(CodeReview).filter(CodeReview.status.in_(REVIEW_ACTIVE)).limit(10).all()
+    issues = db.query(Issue).filter(Issue.status.in_(ISSUE_ACTIVE)).limit(10).all()
+    prs = db.query(PullRequest).filter(PullRequest.status.in_(PR_ACTIVE)).limit(10).all()
+    fixes = db.query(Fix).filter(Fix.status.in_(FIX_ACTIVE)).limit(10).all()
 
     all_active = (
         [("review", r) for r in reviews]

@@ -20,14 +20,19 @@ def list_issues(
     request: Request,
     status: Optional[str] = None,
     priority: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50,
     db: Session = Depends(get_db),
 ):
+    page = max(1, page)
+    limit = max(1, min(limit, 200))
     query = db.query(Issue)
     if status:
         query = query.filter(Issue.status == status)
     if priority:
         query = query.filter(Issue.priority == priority)
-    items = query.order_by(Issue.created_at.desc()).all()
+    total = query.count()
+    items = query.order_by(Issue.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
     return templates.TemplateResponse("issues.html", {
         "request": request,
         "items": items,
@@ -37,6 +42,9 @@ def list_issues(
         "status_options": STATUS_OPTIONS,
         "priority_options": PRIORITY_OPTIONS,
         "severity_options": SEVERITY_OPTIONS,
+        "page": page,
+        "limit": limit,
+        "total": total,
         **get_nav_counts(db),
     })
 

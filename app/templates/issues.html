@@ -75,6 +75,23 @@
     </div>
     {% endfor %}
   </div>
+
+  {% set total_pages = ((total - 1) // limit + 1) if total > 0 else 1 %}
+  {% if total_pages > 1 %}
+  <div class="flex items-center justify-between pt-2 text-sm text-slate-400">
+    <span>{{ (page - 1) * limit + 1 }}–{{ [page * limit, total] | min }} of {{ total }}</span>
+    <div class="flex gap-2">
+      {% if page > 1 %}
+      <a href="?status={{ filter_status }}&priority={{ filter_priority }}&page={{ page - 1 }}&limit={{ limit }}"
+         class="px-3 py-1.5 rounded-lg border border-slate-700 hover:text-white transition-colors">&larr; Prev</a>
+      {% endif %}
+      {% if page < total_pages %}
+      <a href="?status={{ filter_status }}&priority={{ filter_priority }}&page={{ page + 1 }}&limit={{ limit }}"
+         class="px-3 py-1.5 rounded-lg border border-slate-700 hover:text-white transition-colors">Next &rarr;</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 {% block scripts %}<script>function toggleForm(id){document.getElementById(id).classList.toggle("hidden")}</script>{% endblock %}
